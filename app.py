@@ -71,11 +71,13 @@ _METRIC_DOCUMENTS_SYNC_NUMBER_THREAD_LOCK = threading.Lock()
 
 _METRIC_INFO.labels(_THOTH_DEPLOYMENT_NAME, __component_version__).inc()
 
+aws_dst_url = os.getenv("AWS_S3_ENDPOINT_URL", "invalid")
+
 
 def _sync_worker(adapter: ResultStorageBase, document_id: str, dst: str, *, force: bool = False) -> None:
     """Sync document logic."""
     destination = f"{dst}/{adapter.RESULT_TYPE}/{document_id}"
-    proc = subprocess.run(["aws", "s3", "ls", destination], capture_output=True)
+    proc = subprocess.run(["aws", "s3", "ls", "--endpoint-url", aws_dst_url , destination], capture_output=True)
 
     if proc.returncode == 0 and not force:
         _LOGGER.info("Document %r is already present", document_id)
@@ -100,6 +102,8 @@ def _sync_worker(adapter: ResultStorageBase, document_id: str, dst: str, *, forc
                 "aws",
                 "s3",
                 "cp",
+                "--endpoint-url",
+                aws_dst_url,
                 temp.name,
                 destination,
             ],
